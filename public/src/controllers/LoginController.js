@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
+const axios = require("axios");
 const User = require("../models/LoginModel");
 const { hashPassword, verifyPassword } = require("../utils/Auth");
 const secretKey = process.env.JWT_SECRET || "secret";
@@ -131,6 +132,32 @@ function authenticateToken(req, res, next) {
   });
 }
 
+/**
+ * @swagger
+ * /auth/is-admin:
+ *   get:
+ *     summary: Check if the current user is an admin
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Returns if the user is admin
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 isAdmin:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         description: No token provided
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 router.get("/is-admin", authenticateToken, async (req, res) => {
   try {
     const user = await User.findOne({ email: req.user.email });
