@@ -169,4 +169,73 @@ router.get("/is-admin", authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /auth/google-login:
+ *   post:
+ *     summary: Login or register user with Google OAuth
+ *     tags: [Auth]
+ *     requestBody:
+ *       description: User info from Google OAuth
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - name
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@gmail.com
+ *               name:
+ *                 type: string
+ *                 example: John Doe
+ *     responses:
+ *       200:
+ *         description: Successful login, returns JWT token and user info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                   description: JWT token for authenticated session
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     email:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *       500:
+ *         description: Server error
+ */
+router.post("/google-login", async (req, res) => {
+  const { email, name } = req.body;
+
+  try {
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      user = new User({
+        email,
+        name,
+        isGoogleUser: true,
+        password: null,
+      });
+      await user.save();
+    }
+
+    const payload = { email: user.email, isAdmin: user.isAdmin };
+    const token = jwt.sign(payload, secretKey, { expiresIn: "1h" });
+
+    res.json({ token, user: { email: user.email, name: user.name } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
