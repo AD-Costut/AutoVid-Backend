@@ -7,6 +7,7 @@ const open = require("open").default;
 
 const { swaggerUi, swaggerSpec } = require("./swagger");
 const authRouter = require("./controllers/LoginController");
+const aiRouter = require("./controllers/AiScriptController");
 
 const app = express();
 app.use(cors());
@@ -16,6 +17,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 console.log("Swagger loaded endpoints:", swaggerSpec.paths);
 
 app.use("/auth", authRouter);
+app.use("/chat", aiRouter);
 
 app.get("/", (req, res) => {
   res.send("AutoVid backend is running!");
