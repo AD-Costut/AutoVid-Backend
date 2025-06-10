@@ -123,7 +123,31 @@ function formatTime(seconds) {
     .padStart(2, "0")},${ms.toString().padStart(3, "0")}`;
 }
 
-const generateVideo = (inputVideo, outputVideo, audioFile, subtitleFile) => {
+function getVideoFilter(aspectRatio, subtitlePath) {
+  // const safeSubtitlePath = subtitlePath
+  //   .replace(/\\/g, "/")
+  //   .replace(/:/g, "\\:");
+
+  // let scaleCropFilter;
+  if (aspectRatio === "16:9") {
+    scaleCropFilter = "scale=1280:-2,crop=1280:720";
+  } else if (aspectRatio === "9:16") {
+    scaleCropFilter = "scale=-2:1280,crop=720:1280";
+  } else {
+    scaleCropFilter = "scale=1280:-2,crop=1280:720";
+  }
+
+  // return `${scaleCropFilter},subtitles=${safeSubtitlePath}`;
+  return scaleCropFilter;
+}
+
+const generateVideo = (
+  inputVideo,
+  outputVideo,
+  audioFile,
+  // subtitleFile,
+  aspectRatio = "16:9"
+) => {
   return new Promise((resolve, reject) => {
     if (!fs.existsSync(inputVideo)) {
       return reject(new Error("Input video file not found"));
@@ -131,13 +155,11 @@ const generateVideo = (inputVideo, outputVideo, audioFile, subtitleFile) => {
     if (!fs.existsSync(audioFile)) {
       return reject(new Error("Audio file not found"));
     }
-    if (!fs.existsSync(subtitleFile)) {
-      return reject(new Error("Subtitle file not found"));
-    }
+    // if (!fs.existsSync(subtitleFile)) {
+    //   return reject(new Error("Subtitle file not found"));
+    // }
 
-    const safeSubtitlePath = subtitleFile
-      .replace(/\\/g, "/")
-      .replace(/:/g, "\\:");
+    const vfFilter = getVideoFilter(aspectRatio);
 
     const ffmpeg = spawn("ffmpeg", [
       "-i",
@@ -145,7 +167,7 @@ const generateVideo = (inputVideo, outputVideo, audioFile, subtitleFile) => {
       "-i",
       audioFile,
       "-vf",
-      `subtitles=${safeSubtitlePath}`,
+      vfFilter,
       "-map",
       "0:v:0",
       "-map",
@@ -153,7 +175,9 @@ const generateVideo = (inputVideo, outputVideo, audioFile, subtitleFile) => {
       "-c:v",
       "libx264",
       "-c:a",
-      "aac",
+      "pcm_s16le",
+      "-strict",
+      "experimental",
       "-shortest",
       outputVideo,
     ]);
@@ -196,9 +220,9 @@ const saveFile = (buffer, filePath) => {
  *                 type: string
  *                 description: The input message prompt for the AI.
  *                 example: Tell me a joke about JavaScript.
- *               videoFormat:
+ *               videoFormat (ratio):
  *                 type: string
- *                 description: Optional video format (e.g., mp4).
+ *                 description: Optional video ratio (e.g., 16:9).
  *                 example: 9:16
  *               voiceChoice:
  *                 type: string
@@ -313,8 +337,8 @@ router.post("/completions", upload.single("file"), async (req, res) => {
       await saveFile(file.buffer, inputFilePath);
       console.log("Uploaded file saved at:", inputFilePath);
 
-      const outputFileName = `output_${Date.now()}.${videoFormat}`;
-      const outputFilePath = path.join(videosDir, outputFileName);
+      const outputFileName = `output_${Date.now()}.mp4`;
+      const outputFilePath = path.join(__dirname, "../videos", outputFileName);
 
       try {
         console.log("Generating final video with FFmpeg...");
@@ -324,22 +348,6 @@ router.post("/completions", upload.single("file"), async (req, res) => {
           audioFilePath,
           srtFilePath
         );
-        try {
-          await generateVideo(
-            inputFilePath,
-            outputFilePath,
-            audioFilePath,
-            srtFilePath
-          );
-        } catch (err) {
-          return res
-            .status(500)
-            .json({ error: "Video generation failed", details: err.message });
-        }
-
-        if (!fs.existsSync(outputFilePath)) {
-          console.error("Error: Video file was not created!");
-        }
       } catch (err) {
         console.error("FFmpeg video generation error:", err);
         return res
