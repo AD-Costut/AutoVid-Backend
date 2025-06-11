@@ -123,7 +123,12 @@ function formatTime(seconds) {
     .padStart(2, "0")},${ms.toString().padStart(3, "0")}`;
 }
 
-function getVideoFilter(aspectRatio) {
+function getVideoFilter(aspectRatio, subtitlePath) {
+  let safeSubtitlePath = subtitlePath.replace(/\\/g, "/");
+  safeSubtitlePath = safeSubtitlePath.replace(/:/g, "\\:");
+
+  safeSubtitlePath = `'${safeSubtitlePath}'`;
+
   let scaleCropFilter;
   if (aspectRatio === "16:9") {
     scaleCropFilter =
@@ -135,7 +140,26 @@ function getVideoFilter(aspectRatio) {
     scaleCropFilter = "scale=iw:ih";
   }
 
-  return scaleCropFilter;
+  return `${scaleCropFilter},subtitles=${safeSubtitlePath}`;
+}
+function getVideoFilter(aspectRatio, subtitlePath) {
+  let safeSubtitlePath = subtitlePath.replace(/\\/g, "/");
+  safeSubtitlePath = safeSubtitlePath.replace(/:/g, "\\:");
+
+  safeSubtitlePath = `'${safeSubtitlePath}'`;
+
+  let scaleCropFilter;
+  if (aspectRatio === "16:9") {
+    scaleCropFilter =
+      "scale=1920:-2,crop=1920:1080:(in_w-1920)/2:(in_h-1080)/2";
+  } else if (aspectRatio === "9:16") {
+    scaleCropFilter =
+      "scale=-2:1920,crop=1080:1920:(in_w-1080)/2:(in_h-1920)/2";
+  } else {
+    scaleCropFilter = "scale=iw:ih";
+  }
+
+  return `${scaleCropFilter},subtitles=${safeSubtitlePath}:force_style='PrimaryColour=&H0000FFFF,Bold=1,MarginV=50,FontName=Arial,FontSize=24'`;
 }
 
 const generateVideo = (
@@ -152,11 +176,14 @@ const generateVideo = (
     if (!fs.existsSync(audioFile)) {
       return reject(new Error("Audio file not found"));
     }
-    // if (!fs.existsSync(subtitleFile)) {
-    //   return reject(new Error("Subtitle file not found"));
-    // }
+    if (!fs.existsSync(subtitleFile)) {
+      return reject(new Error("Subtitle file not found"));
+    }
+    console.log("srt file path before", subtitleFile);
+    console.log("audifile path", audioFile);
+    const vfFilter = getVideoFilter(aspectRatio, subtitleFile);
 
-    const vfFilter = getVideoFilter(aspectRatio);
+    console.log("srt file path:", subtitleFile);
     const ffmpeg = spawn("ffmpeg", [
       "-stream_loop",
       "-1",
