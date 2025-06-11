@@ -123,21 +123,18 @@ function formatTime(seconds) {
     .padStart(2, "0")},${ms.toString().padStart(3, "0")}`;
 }
 
-function getVideoFilter(aspectRatio, subtitlePath) {
-  // const safeSubtitlePath = subtitlePath
-  //   .replace(/\\/g, "/")
-  //   .replace(/:/g, "\\:");
-
-  // let scaleCropFilter;
+function getVideoFilter(aspectRatio) {
+  let scaleCropFilter;
   if (aspectRatio === "16:9") {
-    scaleCropFilter = "scale=1280:-2,crop=1280:720";
+    scaleCropFilter =
+      "scale=1920:-2,crop=1920:1080:(in_w-1920)/2:(in_h-1080)/2";
   } else if (aspectRatio === "9:16") {
-    scaleCropFilter = "scale=-2:1280,crop=720:1280";
+    scaleCropFilter =
+      "scale=-2:1920,crop=1080:1920:(in_w-1080)/2:(in_h-1920)/2";
   } else {
-    scaleCropFilter = "scale=1280:-2,crop=1280:720";
+    scaleCropFilter = "scale=iw:ih";
   }
 
-  // return `${scaleCropFilter},subtitles=${safeSubtitlePath}`;
   return scaleCropFilter;
 }
 
@@ -145,8 +142,8 @@ const generateVideo = (
   inputVideo,
   outputVideo,
   audioFile,
-  // subtitleFile,
-  aspectRatio = "16:9"
+  subtitleFile,
+  aspectRatio
 ) => {
   return new Promise((resolve, reject) => {
     if (!fs.existsSync(inputVideo)) {
@@ -160,7 +157,6 @@ const generateVideo = (
     // }
 
     const vfFilter = getVideoFilter(aspectRatio);
-
     const ffmpeg = spawn("ffmpeg", [
       "-i",
       inputVideo,
@@ -220,7 +216,7 @@ const saveFile = (buffer, filePath) => {
  *                 type: string
  *                 description: The input message prompt for the AI.
  *                 example: Tell me a joke about JavaScript.
- *               videoFormat (ratio):
+ *               aspectRatio:
  *                 type: string
  *                 description: Optional video ratio (e.g., 16:9).
  *                 example: 9:16
@@ -266,13 +262,9 @@ const saveFile = (buffer, filePath) => {
  */
 
 router.post("/completions", upload.single("file"), async (req, res) => {
-  const {
-    message,
-    videoFormat = "16:9",
-    voiceChoice = "en_us_001",
-    videoStyle,
-    scriptType,
-  } = req.body;
+  const { message, aspectRatio, voiceChoice, videoStyle, scriptType } =
+    req.body;
+
   const file = req.file;
   debugger;
 
@@ -346,7 +338,8 @@ router.post("/completions", upload.single("file"), async (req, res) => {
           inputFilePath,
           outputFilePath,
           audioFilePath,
-          srtFilePath
+          srtFilePath,
+          aspectRatio
         );
       } catch (err) {
         console.error("FFmpeg video generation error:", err);
@@ -355,7 +348,7 @@ router.post("/completions", upload.single("file"), async (req, res) => {
           .json({ error: "Video generation failed", details: err.message });
       }
 
-      res.setHeader("Content-Type", `video/${videoFormat}`);
+      res.setHeader("Content-Type", `video/mp4`);
       res.setHeader(
         "Content-Disposition",
         `inline; filename="${outputFileName}"`
