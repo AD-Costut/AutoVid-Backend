@@ -158,6 +158,8 @@ const generateVideo = (
 
     const vfFilter = getVideoFilter(aspectRatio);
     const ffmpeg = spawn("ffmpeg", [
+      "-stream_loop",
+      "-1",
       "-i",
       inputVideo,
       "-i",
