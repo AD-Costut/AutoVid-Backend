@@ -88,12 +88,18 @@ async function sendMessageToAi(message) {
 }
 
 function extractContent(data) {
-  return (
+  const rawContent =
     data.choices?.[0]?.message?.content ||
     data.generated_text ||
     data.response ||
-    ""
-  ).trim();
+    "";
+
+  const match = rawContent.match(/##([\s\S]*?)##/);
+  if (match) {
+    return match[1].trim();
+  }
+
+  return rawContent.trim();
 }
 
 function generateSRT(text, durationSec) {
@@ -123,25 +129,6 @@ function formatTime(seconds) {
     .padStart(2, "0")},${ms.toString().padStart(3, "0")}`;
 }
 
-function getVideoFilter(aspectRatio, subtitlePath) {
-  let safeSubtitlePath = subtitlePath.replace(/\\/g, "/");
-  safeSubtitlePath = safeSubtitlePath.replace(/:/g, "\\:");
-
-  safeSubtitlePath = `'${safeSubtitlePath}'`;
-
-  let scaleCropFilter;
-  if (aspectRatio === "16:9") {
-    scaleCropFilter =
-      "scale=1920:-2,crop=1920:1080:(in_w-1920)/2:(in_h-1080)/2";
-  } else if (aspectRatio === "9:16") {
-    scaleCropFilter =
-      "scale=-2:1920,crop=1080:1920:(in_w-1080)/2:(in_h-1920)/2";
-  } else {
-    scaleCropFilter = "scale=iw:ih";
-  }
-
-  return `${scaleCropFilter},subtitles=${safeSubtitlePath}`;
-}
 function getVideoFilter(aspectRatio, subtitlePath) {
   let safeSubtitlePath = subtitlePath.replace(/\\/g, "/");
   safeSubtitlePath = safeSubtitlePath.replace(/:/g, "\\:");
@@ -377,11 +364,16 @@ router.post("/completions", upload.single("file"), async (req, res) => {
           .json({ error: "Video generation failed", details: err.message });
       }
 
-      res.setHeader("Content-Type", `video/mp4`);
-      res.setHeader(
-        "Content-Disposition",
-        `inline; filename="${outputFileName}"`
-      );
+      const videoUrl = `/videos/${outputFileName}`;
+
+      res.json({
+        message: "Video generated successfully",
+        videoUrl,
+        audioUrl: `/audios/${audioFileName}`,
+        srtUrl: `/subtitles/${srtFileName}`,
+        videoStyle,
+      });
+
       fs.createReadStream(outputFilePath).pipe(res);
     } else {
       res.json({
