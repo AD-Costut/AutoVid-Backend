@@ -110,7 +110,7 @@ router.post("/login", async (req, res) => {
     if (!verifyPassword(user.password, password))
       return res.status(401).json({ message: "Invalid password" });
 
-    const payload = { email: user.email, isAdmin: user.isAdmin };
+    const payload = { id: user._id, email: user.email, isAdmin: user.isAdmin };
     const token = jwt.sign(payload, secretKey, { expiresIn: "1h" });
 
     res.json({ token });
@@ -229,7 +229,7 @@ router.post("/google-login", async (req, res) => {
       await user.save();
     }
 
-    const payload = { email: user.email, isAdmin: user.isAdmin };
+    const payload = { id: user._id, email: user.email, isAdmin: user.isAdmin };
     const token = jwt.sign(payload, secretKey, { expiresIn: "1h" });
 
     res.json({ token, user: { email: user.email, name: user.name } });
