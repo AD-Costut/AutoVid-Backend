@@ -16,6 +16,7 @@ app.use(express.json());
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 console.log("Swagger loaded endpoints:", swaggerSpec.paths);
+app.use("/videos", express.static(path.join(__dirname, "public/src/videos")));
 
 app.use("/auth", authRouter);
 app.use("/chat", aiRouter);

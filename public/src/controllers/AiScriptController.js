@@ -95,11 +95,13 @@ function extractContent(data) {
     "";
 
   const match = rawContent.match(/##([\s\S]*?)##/);
-  if (match) {
-    return match[1].trim();
+  let content = match ? match[1].trim() : rawContent.trim();
+
+  if (content.length > 300) {
+    content = content.slice(0, 300);
   }
 
-  return rawContent.trim();
+  return content;
 }
 
 function generateSRT(text, durationSec) {
@@ -280,7 +282,6 @@ const saveFile = (buffer, filePath) => {
 router.post("/completions", upload.single("file"), async (req, res) => {
   const { message, aspectRatio, voiceChoice, videoStyle, scriptType } =
     req.body;
-
   const file = req.file;
   debugger;
 
