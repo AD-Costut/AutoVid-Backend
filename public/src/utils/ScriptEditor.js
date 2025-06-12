@@ -77,7 +77,7 @@ function extractContent(data) {
   let content = match ? match[1].trim() : rawContent.trim();
 
   if (content.length > 300) {
-    content = content.slice(0, 300);
+    content = content.slice(0, 299);
   }
 
   return content;
