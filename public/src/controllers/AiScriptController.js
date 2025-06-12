@@ -8,6 +8,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 const { v4: uuidv4 } = require("uuid");
 const axios = require("axios");
 
+const { textToSpeech } = require("../utils/TextToSpeech");
+
 const { sendMessageToAi } = require("../utils/ScriptEditor");
 
 const {
@@ -100,9 +102,15 @@ router.post("/completions", upload.single("file"), async (req, res) => {
       if (scriptType === "AI Script") {
         console.log("Generating script via AI...");
         scriptText = await sendMessageToAi(message);
+        if (videoStyle === "Slide Show") {
+          analyzeEntitiesFromAiResponse(scriptText);
+        }
         console.log("AI-generated script:", scriptText);
       } else if (scriptType === "User Script") {
         scriptText = message;
+        if (videoStyle === "Slide Show") {
+          analyzeEntitiesFromAiResponse(scriptText);
+        }
         console.log("Using user-provided script.");
       } else {
         return res.status(400).json({ error: "Invalid scriptType" });
@@ -116,20 +124,12 @@ router.post("/completions", upload.single("file"), async (req, res) => {
 
     let base64Audio;
     try {
-      console.log("Sending script to TTS API...");
-      const ttsRes = await axios.post(
-        "https://tiktok-tts.weilnet.workers.dev/api/generation",
-        { text: scriptText, voice: voiceChoice },
-        { headers: { "Content-Type": "application/json" } }
-      );
-      base64Audio = ttsRes.data?.data;
-
-      if (!base64Audio) throw new Error("TTS response missing audio data");
+      base64Audio = await textToSpeech(scriptText, voiceChoice);
     } catch (err) {
-      console.error("TTS API error:", err.response?.data || err.message);
-      return res
-        .status(500)
-        .json({ error: "TTS generation failed", details: err.message });
+      return res.status(500).json({
+        error: "TTS generation failed",
+        details: err.message,
+      });
     }
 
     const audioBuffer = Buffer.from(base64Audio, "base64");
@@ -151,6 +151,10 @@ router.post("/completions", upload.single("file"), async (req, res) => {
 
       const outputFileName = `output_${Date.now()}.mp4`;
       const outputFilePath = path.join(__dirname, "../videos", outputFileName);
+
+      if (videoStyle === "Slide Show") {
+        inputFilePath = path.join(slideShowDir, "your_slide_show_file.ext");
+      }
 
       try {
         console.log("Generating final video with FFmpeg...");
