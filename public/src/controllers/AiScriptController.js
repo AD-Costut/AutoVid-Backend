@@ -8,211 +8,14 @@ const upload = multer({ storage: multer.memoryStorage() });
 const { v4: uuidv4 } = require("uuid");
 const axios = require("axios");
 
-const uploadDir = path.join(__dirname, "../uploads");
-const videosDir = path.join(__dirname, "../videos");
-const audiosDir = path.join(__dirname, "../audios");
-const subtitlesDir = path.join(__dirname, "../subtitles");
+const { sendMessageToAi } = require("../utils/ScriptEditor");
 
-[uploadDir, videosDir, audiosDir, subtitlesDir].forEach((dir) => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-});
-
-let currentProvider = "together";
-let currentModel = "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo";
-
-//       let currentProvider= "cerebras",
-//       let currentModel= "Qwen/Qwen3-32B",
-
-const providersConfig = {
-  together: {
-    url: "https://api.together.xyz/v1/chat/completions",
-    apiKey: process.env.TOGETHER_API_KEY,
-  },
-  huggingface: {
-    url: "https://api-inference.huggingface.co/models/Qwen/Qwen3-32B",
-    apiKey: process.env.HUGGINGFACE_API_KEY,
-  },
-};
-
-async function sendMessageToAi(message) {
-  if (!(currentProvider in providersConfig)) {
-    throw new Error("Unsupported provider");
-  }
-
-  const config = providersConfig[currentProvider];
-
-  if (currentProvider === "together") {
-    const response = await fetch(config.url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: currentModel,
-        messages: [{ role: "user", content: message }],
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Together API error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return extractContent(data);
-  }
-
-  if (currentProvider === "huggingface") {
-    const response = await fetch(config.url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        inputs: {
-          text: message,
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Hugging Face API error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return extractContent(data);
-  }
-}
-
-function extractContent(data) {
-  const rawContent =
-    data.choices?.[0]?.message?.content ||
-    data.generated_text ||
-    data.response ||
-    "";
-
-  const match = rawContent.match(/##([\s\S]*?)##/);
-  let content = match ? match[1].trim() : rawContent.trim();
-
-  if (content.length > 300) {
-    content = content.slice(0, 300);
-  }
-
-  return content;
-}
-
-function generateSRT(text, durationSec) {
-  const words = text.split(/\s+/);
-  const wordDuration = durationSec / words.length;
-  let srt = "";
-  let startTime = 0;
-
-  words.forEach((word, i) => {
-    const endTime = startTime + wordDuration;
-    srt += `${i + 1}\n`;
-    srt += `${formatTime(startTime)} --> ${formatTime(endTime)}\n`;
-    srt += `${word}\n\n`;
-    startTime = endTime;
-  });
-
-  return srt;
-}
-
-function formatTime(seconds) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  const ms = Math.floor((seconds % 1) * 1000);
-  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s
-    .toString()
-    .padStart(2, "0")},${ms.toString().padStart(3, "0")}`;
-}
-
-function getVideoFilter(aspectRatio, subtitlePath) {
-  let safeSubtitlePath = subtitlePath.replace(/\\/g, "/");
-  safeSubtitlePath = safeSubtitlePath.replace(/:/g, "\\:");
-
-  safeSubtitlePath = `'${safeSubtitlePath}'`;
-
-  let scaleCropFilter;
-  if (aspectRatio === "16:9") {
-    scaleCropFilter =
-      "scale=1920:-2,crop=1920:1080:(in_w-1920)/2:(in_h-1080)/2";
-  } else if (aspectRatio === "9:16") {
-    scaleCropFilter =
-      "scale=-2:1920,crop=1080:1920:(in_w-1080)/2:(in_h-1920)/2";
-  } else {
-    scaleCropFilter = "scale=iw:ih";
-  }
-
-  return `${scaleCropFilter},subtitles=${safeSubtitlePath}:force_style='PrimaryColour=&H0000FFFF,Bold=1,MarginV=50,FontName=Arial,FontSize=24'`;
-}
-
-const generateVideo = (
-  inputVideo,
-  outputVideo,
-  audioFile,
-  subtitleFile,
-  aspectRatio
-) => {
-  return new Promise((resolve, reject) => {
-    if (!fs.existsSync(inputVideo)) {
-      return reject(new Error("Input video file not found"));
-    }
-    if (!fs.existsSync(audioFile)) {
-      return reject(new Error("Audio file not found"));
-    }
-    if (!fs.existsSync(subtitleFile)) {
-      return reject(new Error("Subtitle file not found"));
-    }
-    console.log("srt file path before", subtitleFile);
-    console.log("audifile path", audioFile);
-    const vfFilter = getVideoFilter(aspectRatio, subtitleFile);
-
-    console.log("srt file path:", subtitleFile);
-    const ffmpeg = spawn("ffmpeg", [
-      "-stream_loop",
-      "-1",
-      "-i",
-      inputVideo,
-      "-i",
-      audioFile,
-      "-vf",
-      vfFilter,
-      "-map",
-      "0:v:0",
-      "-map",
-      "1:a:0",
-      "-c:v",
-      "libx264",
-      "-c:a",
-      "pcm_s16le",
-      "-strict",
-      "experimental",
-      "-shortest",
-      outputVideo,
-    ]);
-
-    ffmpeg.stderr.on("data", (data) => console.error(`FFmpeg stderr: ${data}`));
-
-    ffmpeg.on("close", (code) => {
-      if (code === 0) {
-        console.log(`✅ FFmpeg finished. Video at: ${outputVideo}`);
-        resolve();
-      } else {
-        console.error(`❌ FFmpeg exited with code ${code}`);
-        reject(new Error(`FFmpeg exited with code ${code}`));
-      }
-    });
-  });
-};
-
-const saveFile = (buffer, filePath) => {
-  return fs.promises.writeFile(filePath, buffer);
-};
+const {
+  uploadDir,
+  generateSRT,
+  generateVideo,
+  saveFile,
+} = require("../utils/VideoUtils");
 
 /**
  * @swagger
@@ -356,7 +159,8 @@ router.post("/completions", upload.single("file"), async (req, res) => {
           outputFilePath,
           audioFilePath,
           srtFilePath,
-          aspectRatio
+          aspectRatio,
+          videoStyle
         );
       } catch (err) {
         console.error("FFmpeg video generation error:", err);
