@@ -1,26 +1,33 @@
 const nlp = require("compromise");
-const { sendMessageToAi } = require("./ScriptEditor");
 
-async function analyzeEntitiesFromAiResponse(message) {
-  const aiResponse = await sendMessageToAi(message);
+function analyzeEntitiesFromAiResponse(message) {
+  const doc = nlp(message);
+  const terms = doc.terms().json();
 
-  const doc = nlp(aiResponse);
+  const orderedEntities = [];
 
-  const people = doc.people().out("array");
-  const organizations = doc.organizations().out("array");
-  const places = doc.places().out("array");
-  const dates = doc.dates().out("array");
-  const animals = doc.match("#Animal").out("array");
-  const fruits = doc.match("#Fruit").out("array");
+  terms.forEach((termObj) => {
+    const term = termObj.text;
+    const tags = termObj.tags || [];
+
+    if (tags.includes("Person")) {
+      orderedEntities.push({ type: "person", value: term });
+    } else if (tags.includes("Organization")) {
+      orderedEntities.push({ type: "organization", value: term });
+    } else if (tags.includes("Place")) {
+      orderedEntities.push({ type: "place", value: term });
+    } else if (tags.includes("Date")) {
+      orderedEntities.push({ type: "date", value: term });
+    } else if (tags.includes("Animal")) {
+      orderedEntities.push({ type: "animal", value: term });
+    } else if (tags.includes("Fruit")) {
+      orderedEntities.push({ type: "fruit", value: term });
+    }
+  });
 
   return {
-    text: aiResponse,
-    people,
-    organizations,
-    places,
-    dates,
-    animals,
-    fruits,
+    text: message,
+    orderedEntities,
   };
 }
 

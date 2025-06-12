@@ -12,12 +12,13 @@ const { textToSpeech } = require("../utils/TextToSpeech");
 
 const { sendMessageToAi } = require("../utils/ScriptEditor");
 
+const { generateSRT } = require("../utils/SRT");
+
 const {
   uploadDir,
-  generateSRT,
   generateVideo,
   saveFile,
-} = require("../utils/VideoUtils");
+} = require("../utils/VideoCreation");
 
 /**
  * @swagger
@@ -102,15 +103,15 @@ router.post("/completions", upload.single("file"), async (req, res) => {
       if (scriptType === "AI Script") {
         console.log("Generating script via AI...");
         scriptText = await sendMessageToAi(message);
-        if (videoStyle === "Slide Show") {
-          analyzeEntitiesFromAiResponse(scriptText);
-        }
+        // if (videoStyle === "Slide Show") {
+        //   analyzeEntitiesFromAiResponse(scriptText);
+        // }
         console.log("AI-generated script:", scriptText);
       } else if (scriptType === "User Script") {
         scriptText = message;
-        if (videoStyle === "Slide Show") {
-          analyzeEntitiesFromAiResponse(scriptText);
-        }
+        // if (videoStyle === "Slide Show") {
+        //   analyzeEntitiesFromAiResponse(scriptText);
+        // }
         console.log("Using user-provided script.");
       } else {
         return res.status(400).json({ error: "Invalid scriptType" });
