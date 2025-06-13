@@ -59,28 +59,56 @@ const generateVideo = async (
       const vfFilter = getVideoFilter(aspectRatio, subtitleFile);
       console.log("srt file path:", subtitleFile);
 
-      const ffmpeg = spawn("ffmpeg", [
-        "-stream_loop",
-        "-1",
-        "-i",
-        inputVideo,
-        "-i",
-        audioFile,
-        "-vf",
-        vfFilter,
-        "-map",
-        "0:v:0",
-        "-map",
-        "1:a:0",
-        "-c:v",
-        "libx264",
-        "-c:a",
-        "pcm_s16le",
-        "-strict",
-        "experimental",
-        "-shortest",
-        outputVideo,
-      ]);
+      const ext = path.extname(inputVideo).toLowerCase();
+      const isImage = [".jpg", ".jpeg", ".png", ".webp"].includes(ext);
+
+      const ffmpegArgs = isImage
+        ? [
+            "-loop",
+            "1",
+            "-i",
+            inputVideo,
+            "-i",
+            audioFile,
+            "-vf",
+            vfFilter,
+            "-map",
+            "0:v:0",
+            "-map",
+            "1:a:0",
+            "-c:v",
+            "libx264",
+            "-tune",
+            "stillimage",
+            "-c:a",
+            "pcm_s16le",
+            "-shortest",
+            "-pix_fmt",
+            "yuv420p",
+            outputVideo,
+          ]
+        : [
+            "-stream_loop",
+            "-1",
+            "-i",
+            inputVideo,
+            "-i",
+            audioFile,
+            "-vf",
+            vfFilter,
+            "-map",
+            "0:v:0",
+            "-map",
+            "1:a:0",
+            "-c:v",
+            "libx264",
+            "-c:a",
+            "pcm_s16le",
+            "-shortest",
+            outputVideo,
+          ];
+
+      const ffmpeg = spawn("ffmpeg", ffmpegArgs);
 
       ffmpeg.stderr.on("data", (data) =>
         console.error(`FFmpeg stderr: ${data}`)

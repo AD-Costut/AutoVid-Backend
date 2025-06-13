@@ -14,11 +14,16 @@ const { sendMessageToAi } = require("../utils/ScriptEditor");
 
 const { generateSRT } = require("../utils/SRT");
 
+// const {
+//   processMessageAndDownloadMediaForSlideShow,
+// } = require("../utils/SlideShowVideoCreation");
+
 const {
   uploadDir,
   generateVideo,
   saveFile,
 } = require("../utils/VideoCreation");
+const { log } = require("console");
 
 /**
  * @swagger
@@ -93,6 +98,10 @@ router.post("/completions", upload.single("file"), async (req, res) => {
 
   if (!message) return res.status(400).json({ error: "Message is required" });
 
+  console.log("Received Image/Video:", file);
+  console.log("Received message:", message);
+  console.log("Received aspectRatio:", aspectRatio);
+  console.log("Received voiceChoice:", voiceChoice);
   console.log("Received videoStyle:", videoStyle);
   console.log("Received scriptType:", scriptType);
 
@@ -152,11 +161,11 @@ router.post("/completions", upload.single("file"), async (req, res) => {
 
       const outputFileName = `output_${Date.now()}.mp4`;
       const outputFilePath = path.join(__dirname, "../videos", outputFileName);
-
-      if (videoStyle === "Slide Show") {
-        inputFilePath = path.join(slideShowDir, "your_slide_show_file.ext");
-      }
-
+      ///////////////////////////////////////////////////////////////
+      // if (videoStyle === "Slide Show") {
+      //   processMessageAndDownloadMediaForSlideShow(scriptText, uploadDir);
+      // }
+      ///////////////////////////////////////////////////////////////
       try {
         console.log("Generating final video with FFmpeg...");
         await generateVideo(
