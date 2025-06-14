@@ -14,6 +14,8 @@ const { sendMessageToAi } = require("../utils/ScriptEditor");
 
 const { generateSRT } = require("../utils/SRT");
 
+// const { generatePrompt } = require("../utils/PromptProcessor");
+
 // const {
 //   processMessageAndDownloadMediaForSlideShow,
 // } = require("../utils/SlideShowVideoCreation");
@@ -111,6 +113,9 @@ router.post("/completions", upload.single("file"), async (req, res) => {
     try {
       if (scriptType === "AI Script") {
         console.log("Generating script via AI...");
+        // processedMessage = generatePrompt(videoStyle, message);
+        // console.log(processedMessage);
+        // scriptText = await sendMessageToAi(processedMessage);
         scriptText = await sendMessageToAi(message);
         // if (videoStyle === "Slide Show") {
         //   analyzeEntitiesFromAiResponse(scriptText);

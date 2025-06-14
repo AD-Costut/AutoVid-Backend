@@ -83,6 +83,23 @@ function extractContent(data) {
   return content;
 }
 
+// function extractContent(data) {
+//   const rawContent =
+//     data.choices?.[0]?.message?.content ||
+//     data.generated_text ||
+//     data.response ||
+//     "";
+
+//   const match = rawContent.match(/##([\s\S]*?)(?:##|$)/);
+//   let content = match ? match[1].trim() : rawContent.trim();
+
+//   if (content.length > 300) {
+//     content = content.slice(0, 299);
+//   }
+
+//   return content;
+// }
+
 module.exports = {
   extractContent,
   sendMessageToAi,
