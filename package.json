@@ -30,6 +30,7 @@
     "mongoose": "^8.15.1",
     "multer": "^2.0.1",
     "open": "^10.1.2",
+    "srt-parser-2": "^1.2.3",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^11.1.0"
