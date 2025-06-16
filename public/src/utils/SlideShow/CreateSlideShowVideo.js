@@ -6,24 +6,13 @@ const uploadSlideShowDir = path.join(__dirname, "../../uploadsFromAPIs");
 const videosDir = path.join(__dirname, "../../videos");
 const audiosDir = path.join(__dirname, "../../audios");
 const subtitlesDir = path.join(__dirname, "../../subtitles");
+const { clearDirectory } = require("../../utils/ClearDirectory");
 
 [uploadSlideShowDir, videosDir, audiosDir, subtitlesDir].forEach((dir) => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
 });
-
-const clearDirectory = (dirPath) => {
-  if (fs.existsSync(dirPath)) {
-    const files = fs.readdirSync(dirPath);
-    for (const file of files) {
-      const fullPath = path.join(dirPath, file);
-      if (fs.lstatSync(fullPath).isFile()) {
-        fs.unlinkSync(fullPath);
-      }
-    }
-  }
-};
 
 const normalizeVideoToXSec = (inputPath, outputPath, interval = 6) => {
   return new Promise((resolve, reject) => {
@@ -197,7 +186,11 @@ const generateSlideShowVideo = async (
       "-c:v",
       "libx264",
       "-c:a",
-      "pcm_s16le",
+      "libmp3lame",
+      "-q:a",
+      "2",
+      "-f",
+      "mp4",
       "-shortest",
       "-pix_fmt",
       "yuv420p",
@@ -213,6 +206,7 @@ const generateSlideShowVideo = async (
         console.log(`✅ FFmpeg finished. Video at: ${outputVideo}`);
 
         clearDirectory(uploadSlideShowDir);
+        // clearDirectory(audiosDir);
         clearDirectory(subtitlesDir);
 
         resolve();

@@ -2,6 +2,8 @@ const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
 
+const { clearDirectory } = require("../utils/ClearDirectory");
+
 const uploadDir = path.join(__dirname, "../uploads");
 const videosDir = path.join(__dirname, "../videos");
 const audiosDir = path.join(__dirname, "../audios");
@@ -81,7 +83,11 @@ const generateVideo = async (
             "-tune",
             "stillimage",
             "-c:a",
-            "pcm_s16le",
+            "libmp3lame",
+            "-q:a",
+            "2",
+            "-f",
+            "mp4",
             "-shortest",
             "-pix_fmt",
             "yuv420p",
@@ -103,11 +109,16 @@ const generateVideo = async (
             "-c:v",
             "libx264",
             "-c:a",
-            "pcm_s16le",
+            "libmp3lame",
+            "-q:a",
+            "2",
+            "-f",
+            "mp4",
             "-shortest",
+            "-pix_fmt",
+            "yuv420p",
             outputVideo,
           ];
-
       const ffmpeg = spawn("ffmpeg", ffmpegArgs);
 
       ffmpeg.stderr.on("data", (data) =>
@@ -117,13 +128,17 @@ const generateVideo = async (
       ffmpeg.on("close", (code) => {
         if (code === 0) {
           console.log(`✅ FFmpeg finished. Video at: ${outputVideo}`);
+
+          clearDirectory(uploadDir);
+          // clearDirectory(audiosDir);
+          clearDirectory(subtitlesDir);
+
           resolve();
         } else {
           console.error(`❌ FFmpeg exited with code ${code}`);
           reject(new Error(`FFmpeg exited with code ${code}`));
         }
       });
-    } else if (videoStyle === "Slide Show") {
     } else {
       return reject(new Error(`Unsupported videoStyle: ${videoStyle}`));
     }
