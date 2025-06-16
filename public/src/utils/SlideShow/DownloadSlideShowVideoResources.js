@@ -1,9 +1,9 @@
-const nlp = require("compromise");
 const fs = require("fs");
 const SrtParser = require("srt-parser-2").default;
 const parser = new SrtParser();
 const axios = require("axios");
 const path = require("path");
+const { execFileSync } = require("child_process");
 
 function timeToSeconds(timeStr) {
   if (!timeStr || typeof timeStr !== "string") {
@@ -17,24 +17,17 @@ function timeToSeconds(timeStr) {
 }
 
 function extractKeywords(text) {
-  const cleanedText = text
-    .toLowerCase()
-    .replace(/\b(the|a|an|and|or|it|is|to|for)\b/gi, "")
-    .replace(/[^\w\s]/g, "")
-    .trim();
-
-  const doc = nlp(cleanedText);
-  const nouns = doc.nouns().out("array");
-
-  if (nouns.length > 0) {
-    const longestNoun = nouns.reduce((a, b) =>
-      a.split(" ").length > b.split(" ").length ? a : b
-    );
-    return [longestNoun.split(" ")[0]];
+  try {
+    const nerScriptPath = path.join(__dirname, "..", "..", "python", "Ner.py");
+    const result = execFileSync("python", [nerScriptPath, text], {
+      encoding: "utf8",
+    });
+    const parsed = JSON.parse(result);
+    return parsed.length ? [parsed[0]] : ["code"];
+  } catch (err) {
+    console.error("NER (SpaCy) failed:", err.message);
+    return ["code"];
   }
-
-  const words = cleanedText.split(/\s+/).filter((word) => word.length > 3);
-  return words.length > 0 ? [words[0]] : ["code"];
 }
 
 function groupSubtitlesByInterval(captions, interval = 6) {
@@ -97,7 +90,7 @@ async function processSrtAndSearch(captions) {
         `For group ${i}: "${groupText}" → "${keyword}" → ${videoLink}`
       );
 
-      const uploadDir = path.join(__dirname, "..", "uploadsFromAPIs");
+      const uploadDir = path.join(__dirname, "..", "..", "uploadsFromAPIs");
 
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });

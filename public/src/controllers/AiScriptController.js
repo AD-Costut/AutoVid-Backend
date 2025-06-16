@@ -14,7 +14,9 @@ const { sendMessageToAi } = require("../utils/ScriptEditor");
 
 const { generateSRT } = require("../utils/SRT");
 
-const { handleSlideShow } = require("../utils/GenerateSlideShowVideo");
+const {
+  handleSlideShow,
+} = require("../utils/SlideShow/DownloadSlideShowVideoResources");
 
 // const { generatePrompt } = require("../utils/PromptProcessor");
 
