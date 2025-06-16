@@ -13,10 +13,76 @@ const subtitlesDir = path.join(__dirname, "../../subtitles");
   }
 });
 
+const clearDirectory = (dirPath) => {
+  if (fs.existsSync(dirPath)) {
+    const files = fs.readdirSync(dirPath);
+    for (const file of files) {
+      const fullPath = path.join(dirPath, file);
+      if (fs.lstatSync(fullPath).isFile()) {
+        fs.unlinkSync(fullPath);
+      }
+    }
+  }
+};
+
+const normalizeVideoToXSec = (inputPath, outputPath, interval = 6) => {
+  return new Promise((resolve, reject) => {
+    const ffmpegArgs = [
+      "-y",
+      "-stream_loop",
+      "-1",
+      "-i",
+      inputPath,
+      "-t",
+      `${interval}`,
+      "-vf",
+      "fps=30",
+      "-c:v",
+      "libx264",
+      "-pix_fmt",
+      "yuv420p",
+      outputPath,
+    ];
+
+    const ffmpeg = spawn("ffmpeg", ffmpegArgs);
+
+    ffmpeg.stderr.on("data", (data) =>
+      console.error(`Normalize stderr: ${data}`)
+    );
+    ffmpeg.on("close", (code) => {
+      code === 0
+        ? resolve()
+        : reject(new Error(`Normalization failed for ${inputPath}`));
+    });
+  });
+};
+
+const processAndNormalizeVideos = async (
+  inputFolder,
+  tempFolder,
+  interval = 6
+) => {
+  if (!fs.existsSync(tempFolder)) {
+    fs.mkdirSync(tempFolder, { recursive: true });
+  }
+
+  const files = fs
+    .readdirSync(inputFolder)
+    .filter((f) => /\.(mp4|mov|mkv|webm)$/i.test(f));
+
+  const jobs = files.map(async (file, idx) => {
+    const inputPath = path.join(inputFolder, file);
+    const outputPath = path.join(tempFolder, `clip${idx}.mp4`);
+    await normalizeVideoToXSec(inputPath, outputPath, interval);
+  });
+
+  await Promise.all(jobs);
+};
+
 function getVideoFilter(aspectRatio, subtitlePath) {
   let safeSubtitlePath = subtitlePath.replace(/\\/g, "/");
   safeSubtitlePath = safeSubtitlePath.replace(/:/g, "\\:");
-  safeSubtitlePath = `'${safeSubtitlePath}'`; // wrap in single quotes
+  safeSubtitlePath = `'${safeSubtitlePath}'`;
 
   let scalePadFilter;
   if (aspectRatio === "16:9") {
@@ -63,7 +129,7 @@ const concatVideos = async (inputFolder, tempConcatFile) => {
 
     ffmpeg.stderr.on("data", (data) => console.error(`Concat stderr: ${data}`));
     ffmpeg.on("close", (code) => {
-      fs.unlinkSync(listPath); // Clean up
+      fs.unlinkSync(listPath);
       code === 0
         ? resolve()
         : reject(new Error(`Concat failed with code ${code}`));
@@ -88,7 +154,12 @@ const generateSlideShowVideo = async (
     if (videoStyle === "Slide Show") {
       try {
         const tempConcatFile = path.join(videosDir, "slideshow-temp.mp4");
-        await concatVideos(inputPathOrVideo, tempConcatFile);
+        const tempFolder = path.join(videosDir, "tempClips");
+        await processAndNormalizeVideos(inputPathOrVideo, tempFolder);
+        await concatVideos(tempFolder, tempConcatFile);
+
+        fs.rmSync(tempFolder, { recursive: true, force: true });
+
         finalInputVideo = tempConcatFile;
       } catch (err) {
         return reject(err);
@@ -140,6 +211,10 @@ const generateSlideShowVideo = async (
     ffmpeg.on("close", (code) => {
       if (code === 0) {
         console.log(`✅ FFmpeg finished. Video at: ${outputVideo}`);
+
+        clearDirectory(uploadSlideShowDir);
+        clearDirectory(subtitlesDir);
+
         resolve();
       } else {
         reject(new Error(`FFmpeg exited with code ${code}`));

@@ -1,6 +1,6 @@
 function generateSRT(text, durationSec) {
   const words = text.split(/\s+/);
-  const wordDuration = (durationSec / words.length) * 3;
+  const wordDuration = (durationSec / words.length) * 2;
   let srt = "";
   let startTime = 0;
 
