@@ -17,7 +17,7 @@ const {
   uploadSlideShowDir,
 } = require("../utils/SlideShow/CreateSlideShowVideo");
 
-const { generateSRT } = require("../utils/SRT");
+const { processAudio } = require("../utils/SRT");
 
 const {
   handleSlideShow,
@@ -63,7 +63,7 @@ const { log } = require("console");
  *               voiceChoice:
  *                 type: string
  *                 description: Optional voice selection.
- *                 example: en_us_001
+ *                 example: en-US-Wavenet-D
  *               videoStyle:
  *                 type: string
  *                 description: Optional video style (e.g., cinematic, slideshow).
@@ -162,7 +162,7 @@ router.post("/completions", upload.single("file"), async (req, res) => {
     fs.writeFileSync(audioFilePath, audioBuffer);
     console.log("Audio file saved at:", audioFilePath);
 
-    const srtContent = generateSRT(scriptText, 5);
+    const srtContent = await generateSRTFromAudioBase64(base64Audio);
     const srtFileName = audioFileName.replace(".mp3", ".srt");
     const srtFilePath = path.join(__dirname, "../subtitles", srtFileName);
     fs.writeFileSync(srtFilePath, srtContent);
