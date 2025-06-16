@@ -12,6 +12,11 @@ const { textToSpeech } = require("../utils/TextToSpeech");
 
 const { sendMessageToAi } = require("../utils/ScriptEditor");
 
+const {
+  generateSlideShowVideo,
+  uploadSlideShowDir,
+} = require("../utils/SlideShow/CreateSlideShowVideo");
+
 const { generateSRT } = require("../utils/SRT");
 
 const {
@@ -213,6 +218,43 @@ router.post("/completions", upload.single("file"), async (req, res) => {
       }
     } else if (videoStyle === "Slide Show") {
       await handleSlideShow(srtFilePath);
+      const inputFilePath = path.join(uploadSlideShowDir);
+
+      const outputFileName = `output_${Date.now()}.mp4`;
+      const outputFilePath = path.join(__dirname, "../videos", outputFileName);
+      try {
+        console.log("Generating final video with FFmpeg...");
+        await generateSlideShowVideo(
+          inputFilePath,
+          outputFilePath,
+          audioFilePath,
+          srtFilePath,
+          aspectRatio,
+          videoStyle
+        );
+      } catch (err) {
+        console.error("FFmpeg video generation error:", err);
+        return res
+          .status(500)
+          .json({ error: "Video generation failed", details: err.message });
+      }
+      const videoUrl = `/videos/${outputFileName}`;
+      res.json({
+        message: "Video generated successfully",
+        videoUrl,
+        audioUrl: `/audios/${audioFileName}`,
+        srtUrl: `/subtitles/${srtFileName}`,
+        videoStyle,
+      });
+
+      fs.createReadStream(outputFilePath).pipe(res);
+    } else {
+      res.json({
+        response: scriptText,
+        audioUrl: `/audios/${audioFileName}`,
+        srtUrl: `/subtitles/${srtFileName}`,
+        videoStyle,
+      });
     }
   } catch (error) {
     console.error("Unexpected error in /completions:");
