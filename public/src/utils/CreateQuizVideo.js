@@ -44,7 +44,7 @@ const generateQuizVideo = async (
   videoStyle
 ) => {
   return new Promise(async (resolve, reject) => {
-    if (videoStyle === "Reddit Story" || videoStyle === "Quiz") {
+    if (videoStyle === "Quiz") {
       if (!fs.existsSync(inputVideo)) {
         return reject(new Error("Input video file not found"));
       }
