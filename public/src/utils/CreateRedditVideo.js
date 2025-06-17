@@ -2,14 +2,14 @@ const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
 
-const { clearDirectory } = require("../utils/ClearDirectory");
+const { clearDirectory } = require("./ClearDirectory");
 
-const uploadDir = path.join(__dirname, "../uploads");
+const uploadRedditDir = path.join(__dirname, "../uploads");
 const videosDir = path.join(__dirname, "../videos");
 const audiosDir = path.join(__dirname, "../audios");
 const subtitlesDir = path.join(__dirname, "../subtitles");
 
-[uploadDir, videosDir, audiosDir, subtitlesDir].forEach((dir) => {
+[uploadRedditDir, videosDir, audiosDir, subtitlesDir].forEach((dir) => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -35,7 +35,7 @@ function getVideoFilter(aspectRatio, subtitlePath) {
   return `${scaleCropFilter},subtitles=${safeSubtitlePath}:force_style='PrimaryColour=&H0000FFFF,Bold=1,MarginV=50,FontName=Arial,FontSize=24'`;
 }
 
-const generateVideo = async (
+const generateRedditVideo = async (
   inputVideo,
   outputVideo,
   audioFile,
@@ -129,7 +129,7 @@ const generateVideo = async (
         if (code === 0) {
           console.log(`✅ FFmpeg finished. Video at: ${outputVideo}`);
 
-          clearDirectory(uploadDir);
+          clearDirectory(uploadRedditDir);
           // clearDirectory(audiosDir);
           clearDirectory(subtitlesDir);
 
@@ -150,11 +150,11 @@ const saveFile = (buffer, filePath) => {
 };
 
 module.exports = {
-  uploadDir,
+  uploadRedditDir,
   videosDir,
   audiosDir,
   subtitlesDir,
   getVideoFilter,
-  generateVideo,
+  generateRedditVideo,
   saveFile,
 };

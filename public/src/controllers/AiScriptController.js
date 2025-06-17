@@ -24,6 +24,11 @@ const {
 } = require("../utils/SlideShow/CreateSlideShowVideo");
 
 const {
+  generateQuizVideo,
+  uploadQuizDir,
+} = require("../utils/CreateQuizVideo");
+
+const {
   handleSlideShow,
 } = require("../utils/SlideShow/DownloadSlideShowVideoResources");
 
@@ -34,10 +39,10 @@ const {
 // } = require("../utils/SlideShowVideoCreation");
 
 const {
-  uploadDir,
-  generateVideo,
+  uploadRedditDir,
+  generateRedditVideo,
   saveFile,
-} = require("../utils/VideoCreation");
+} = require("../utils/CreateRedditVideo");
 const { log } = require("console");
 
 /**
@@ -126,19 +131,10 @@ router.post("/completions", upload.single("file"), async (req, res) => {
     try {
       if (scriptType === "AI Script") {
         console.log("Generating script via AI...");
-        // processedMessage = generatePrompt(videoStyle, message);
-        // console.log(processedMessage);
-        // scriptText = await sendMessageToAi(processedMessage);
         scriptText = await sendMessageToAi(message);
-        // if (videoStyle === "Slide Show") {
-        //   analyzeEntitiesFromAiResponse(scriptText);
-        // }
         console.log("AI-generated script:", scriptText);
       } else if (scriptType === "User Script") {
         scriptText = message;
-        // if (videoStyle === "Slide Show") {
-        //   analyzeEntitiesFromAiResponse(scriptText);
-        // }
         console.log("Using user-provided script.");
       } else {
         return res.status(400).json({ error: "Invalid scriptType" });
@@ -180,9 +176,9 @@ router.post("/completions", upload.single("file"), async (req, res) => {
       console.warn("Subtitle not found at:", srtGeneratedPath);
     }
 
-    if (videoStyle === "Reddit Story" || videoStyle === "Quiz") {
+    if (videoStyle === "Reddit Story") {
       if (file) {
-        const inputFilePath = path.join(uploadDir, file.originalname);
+        const inputFilePath = path.join(uploadRedditDir, file.originalname);
         await saveFile(file.buffer, inputFilePath);
         console.log("Uploaded file saved at:", inputFilePath);
 
@@ -194,7 +190,7 @@ router.post("/completions", upload.single("file"), async (req, res) => {
         );
         try {
           console.log("Generating final video with FFmpeg...");
-          await generateVideo(
+          await generateRedditVideo(
             inputFilePath,
             outputFilePath,
             audioFilePath,
@@ -260,6 +256,54 @@ router.post("/completions", upload.single("file"), async (req, res) => {
       });
 
       fs.createReadStream(outputFilePath).pipe(res);
+    } else if (videoStyle === "Quiz") {
+      if (file) {
+        const inputFilePath = path.join(uploadQuizDir, file.originalname);
+        await saveFile(file.buffer, inputFilePath);
+        console.log("Uploaded file saved at:", inputFilePath);
+
+        const outputFileName = `output_${Date.now()}.mp4`;
+        const outputFilePath = path.join(
+          __dirname,
+          "../videos",
+          outputFileName
+        );
+        try {
+          console.log("Generating final video with FFmpeg...");
+          await generateQuizVideo(
+            inputFilePath,
+            outputFilePath,
+            audioFilePath,
+            srtFilePath,
+            aspectRatio,
+            videoStyle
+          );
+        } catch (err) {
+          console.error("FFmpeg video generation error:", err);
+          return res
+            .status(500)
+            .json({ error: "Video generation failed", details: err.message });
+        }
+
+        const videoUrl = `/videos/${outputFileName}`;
+
+        res.json({
+          message: "Video generated successfully",
+          videoUrl,
+          audioUrl: `/audios/${audioFileName}`,
+          srtUrl: `/subtitles/${srtFileName}`,
+          videoStyle,
+        });
+
+        fs.createReadStream(outputFilePath).pipe(res);
+      } else {
+        res.json({
+          response: scriptText,
+          audioUrl: `/audios/${audioFileName}`,
+          srtUrl: `/subtitles/${srtFileName}`,
+          videoStyle,
+        });
+      }
     } else {
       res.json({
         response: scriptText,
