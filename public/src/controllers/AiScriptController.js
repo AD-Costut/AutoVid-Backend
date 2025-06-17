@@ -1,6 +1,10 @@
 const express = require("express");
 const multer = require("multer");
 const { spawn } = require("child_process");
+const { exec } = require("child_process");
+const util = require("util");
+const execAsync = util.promisify(exec);
+const { execSync } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const router = express.Router();
@@ -12,12 +16,12 @@ const { textToSpeech } = require("../utils/TextToSpeech");
 
 const { sendMessageToAi } = require("../utils/ScriptEditor");
 
+const pythonScriptPath = path.join(__dirname, "..", "python", "Whisper.py");
+
 const {
   generateSlideShowVideo,
   uploadSlideShowDir,
 } = require("../utils/SlideShow/CreateSlideShowVideo");
-
-const { processAudio } = require("../utils/SRT");
 
 const {
   handleSlideShow,
@@ -162,11 +166,19 @@ router.post("/completions", upload.single("file"), async (req, res) => {
     fs.writeFileSync(audioFilePath, audioBuffer);
     console.log("Audio file saved at:", audioFilePath);
 
-    const srtContent = await generateSRTFromAudioBase64(base64Audio);
+    const command = `python "${pythonScriptPath}" "${audioFilePath}"`;
+    const { stdout, stderr } = await execAsync(command);
+
+    const srtGeneratedPath = stdout.trim();
     const srtFileName = audioFileName.replace(".mp3", ".srt");
     const srtFilePath = path.join(__dirname, "../subtitles", srtFileName);
-    fs.writeFileSync(srtFilePath, srtContent);
-    console.log("Subtitle file saved at:", srtFilePath);
+
+    if (fs.existsSync(srtGeneratedPath)) {
+      fs.renameSync(srtGeneratedPath, srtFilePath);
+      console.log("Subtitle file moved to:", srtFilePath);
+    } else {
+      console.warn("Subtitle not found at:", srtGeneratedPath);
+    }
 
     if (videoStyle === "Reddit Story" || videoStyle === "Quiz") {
       if (file) {
