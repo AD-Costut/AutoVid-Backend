@@ -24,10 +24,10 @@ function getVideoFilter(aspectRatio, subtitlePath) {
   let scaleCropFilter;
   if (aspectRatio === "16:9") {
     scaleCropFilter =
-      "scale=1920:-2,crop=1920:1080:(in_w-1920)/2:(in_h-1080)/2";
+      "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080";
   } else if (aspectRatio === "9:16") {
     scaleCropFilter =
-      "scale=-2:1920,crop=1080:1920:(in_w-1080)/2:(in_h-1920)/2";
+      "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920";
   } else {
     scaleCropFilter = "scale=iw:ih";
   }

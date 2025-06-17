@@ -76,8 +76,8 @@ function extractContent(data) {
   const match = rawContent.match(/##([\s\S]*?)##/);
   let content = match ? match[1].trim() : rawContent.trim();
 
-  if (content.length > 300) {
-    content = content.slice(0, 299);
+  if (content.length > 5000) {
+    content = content.slice(0, 4999);
   }
 
   return content;
