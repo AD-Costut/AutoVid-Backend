@@ -116,49 +116,22 @@ function generateSRTOutput(questions) {
   let output = "";
   let counter = 1;
 
-  for (const question of questions) {
-    const [startTime, endTime] = question.time.split(" --> ");
-    let answerEndTime = endTime;
+  for (let i = 0; i < questions.length; i++) {
+    const question = questions[i];
+    const [startTime] = question.time.split(" --> ");
 
-    if (question.answers.length > 0) {
-      const lastAnswerTime = question.answers[question.answers.length - 1].time;
-      answerEndTime = lastAnswerTime.split(" --> ")[1];
+    let endTime;
+    if (i < questions.length - 1) {
+      const nextQuestionTime = questions[i + 1].time.split(" --> ")[0];
+      endTime = nextQuestionTime;
+    } else {
+      endTime = question.correctAnswer
+        ? question.correctAnswer.time.split(" --> ")[1]
+        : question.time.split(" --> ")[1];
     }
 
     output += `${counter++}\n`;
-    output += `${startTime} --> ${answerEndTime}\n`;
-    output += `${question.question}\n`;
-
-    for (const answer of question.answers) {
-      output += `${answer.text}\n`;
-    }
-    output += "\n";
-
-    if (question.correctAnswer) {
-      output += `${counter++}\n`;
-      output += `${question.correctAnswer.time}\n`;
-      output += `${question.correctAnswer.text}\n\n`;
-    }
-  }
-
-  return output;
-}
-
-function generateSRTOutput(questions) {
-  let output = "";
-  let counter = 1;
-
-  for (const question of questions) {
-    const [startTime, endTime] = question.time.split(" --> ");
-    let answerEndTime = endTime;
-
-    if (question.answers.length > 0) {
-      const lastAnswerTime = question.answers[question.answers.length - 1].time;
-      answerEndTime = lastAnswerTime.split(" --> ")[1];
-    }
-
-    output += `${counter++}\n`;
-    output += `${startTime} --> ${answerEndTime}\n`;
+    output += `${startTime} --> ${endTime}\n`;
     output += `${question.question}\n`;
 
     for (const answer of question.answers) {
