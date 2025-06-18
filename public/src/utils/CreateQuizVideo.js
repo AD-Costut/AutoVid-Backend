@@ -267,9 +267,12 @@ const generateQuizVideo = async (
         ffmpeg.on("close", (code) => {
           if (code === 0) {
             console.log(`✅ FFmpeg finished. Video at: ${outputVideo}`);
+
             clearDirectory(uploadQuizDir);
             // clearDirectory(audiosDir);
             // clearDirectory(subtitlesDir);
+
+            resolve();
           } else {
             console.error(`❌ FFmpeg exited with code ${code}`);
             reject(new Error(`FFmpeg exited with code ${code}`));
