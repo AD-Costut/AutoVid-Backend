@@ -113,8 +113,10 @@ router.post("/login", async (req, res) => {
 
     const payload = { id: user._id, email: user.email, isAdmin: user.isAdmin };
     const token = jwt.sign(payload, secretKey, { expiresIn: "1h" });
-
-    res.json({ token });
+    res.json({
+      token,
+      userId: user._id,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -220,7 +222,14 @@ router.post("/google-login", async (req, res) => {
     const payload = { id: user._id, email: user.email, isAdmin: user.isAdmin };
     const token = jwt.sign(payload, secretKey, { expiresIn: "1h" });
 
-    res.json({ token, user: { email: user.email, name: user.name } });
+    res.json({
+      token,
+      user: {
+        email: user.email,
+        name: user.name,
+        userId: user._id,
+      },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

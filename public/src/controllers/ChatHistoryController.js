@@ -103,4 +103,80 @@ router.post("/", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     GeneratedVideo:
+ *       type: object
+ *       properties:
+ *         userId:
+ *           type: string
+ *           example: "64a8f2f2c9b1a5b123456789"
+ *         userMessage:
+ *           type: string
+ *           example: "This is the user input message."
+ *         voiceChoice:
+ *           type: string
+ *           example: "defaultVoice"
+ *         videoStyle:
+ *           type: string
+ *           example: "defaultStyle"
+ *         scriptType:
+ *           type: string
+ *           example: "defaultScript"
+ *         fileName:
+ *           type: string
+ *           example: "video123.mp4"
+ *         videoUrl:
+ *           type: string
+ *           example: "/videos/video123.mp4"
+ *         completedLabel:
+ *           type: string
+ *           example: "User message snippet (01.06.25 14:30)"
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           example: "2025-06-20T14:30:00Z"
+ */
+
+/**
+ * @swagger
+ * /api/chatHistory/{userId}:
+ *   get:
+ *     summary: Get all generated videos for a user
+ *     tags: [GeneratedVideos]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: MongoDB ObjectId of the user
+ *     responses:
+ *       200:
+ *         description: A list of videos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/GeneratedVideo'
+ *       500:
+ *         description: Error fetching videos
+ */
+
+router.get("/:userId", async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const videos = await GeneratedChatHistorySchema.find({ userId }).sort({
+      createdAt: -1,
+    });
+    res.status(200).json(videos);
+  } catch (error) {
+    console.error("Error fetching videos:", error);
+    res.status(500).json({ error: "Failed to fetch videos" });
+  }
+});
+
 module.exports = router;
