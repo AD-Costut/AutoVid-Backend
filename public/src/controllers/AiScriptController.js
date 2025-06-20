@@ -28,6 +28,8 @@ const {
   uploadQuizDir,
 } = require("../utils/CreateQuizVideo");
 
+const { authenticateToken } = require("../utils/MiddlewareAuth");
+
 const {
   handleSlideShow,
 } = require("../utils/SlideShow/DownloadSlideShowVideoResources");
@@ -47,11 +49,20 @@ const { log } = require("console");
 
 /**
  * @swagger
+ * components:
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
+ *
  * /chat/completions:
  *   post:
  *     summary: Generate AI response and optionally process uploaded file to create video
  *     tags:
  *       - Chat
+ *     security:
+ *       - bearerAuth: []
  *     consumes:
  *       - multipart/form-data
  *     requestBody:
@@ -60,6 +71,8 @@ const { log } = require("console");
  *         multipart/form-data:
  *           schema:
  *             type: object
+ *             required:
+ *               - message
  *             properties:
  *               message:
  *                 type: string
@@ -88,8 +101,6 @@ const { log } = require("console");
  *                 type: string
  *                 format: binary
  *                 description: Optional file upload.
- *             required:
- *               - message
  *     responses:
  *       200:
  *         description: AI response and video generation success
@@ -110,164 +121,147 @@ const { log } = require("console");
  *         description: Internal server error
  */
 
-router.post("/completions", upload.single("file"), async (req, res) => {
-  const {
-    message,
-    aspectRatio,
-    voiceChoice,
-    videoStyle,
-    scriptType,
-    completedLabel,
-  } = req.body;
-  const file = req.file;
-  debugger;
+router.post(
+  "/completions",
+  authenticateToken,
+  upload.single("file"),
+  async (req, res) => {
+    const {
+      message,
+      aspectRatio,
+      voiceChoice,
+      videoStyle,
+      scriptType,
+      completedLabel,
+    } = req.body;
+    const file = req.file;
+    debugger;
 
-  console.log("LABEL COMPLETAT", completedLabel);
-  if (!message) return res.status(400).json({ error: "Message is required" });
+    const Chat = require("../models/ChatModel");
 
-  console.log("Received Image/Video:", file);
-  console.log("Received message:", message);
-  console.log("Received aspectRatio:", aspectRatio);
-  console.log("Received voiceChoice:", voiceChoice);
-  console.log("Received videoStyle:", videoStyle);
-  console.log("Received scriptType:", scriptType);
+    if (!message) return res.status(400).json({ error: "Message is required" });
 
-  try {
-    let scriptText = "";
+    console.log("Received Image/Video:", file);
+    console.log("Received message:", message);
+    console.log("Received aspectRatio:", aspectRatio);
+    console.log("Received voiceChoice:", voiceChoice);
+    console.log("Received videoStyle:", videoStyle);
+    console.log("Received scriptType:", scriptType);
 
     try {
-      if (scriptType === "AI Script") {
-        console.log("Generating script via AI...");
-        scriptText = await sendMessageToAi(message);
-        console.log("AI-generated script:", scriptText);
-      } else if (scriptType === "User Script") {
-        scriptText = message;
-        console.log("Using user-provided script.");
-      } else {
-        return res.status(400).json({ error: "Invalid scriptType" });
-      }
-    } catch (err) {
-      console.error("Error generating scriptText:", err);
-      return res
-        .status(500)
-        .json({ error: "Script generation failed", details: err.message });
-    }
+      let scriptText = "";
 
-    let base64Audio;
-    try {
-      base64Audio = await textToSpeech(scriptText, voiceChoice);
-    } catch (err) {
-      return res.status(500).json({
-        error: "TTS generation failed",
-        details: err.message,
-      });
-    }
-
-    const audioBuffer = Buffer.from(base64Audio, "base64");
-    const audioFileName = `speech_${uuidv4()}.mp3`;
-    const audioFilePath = path.join(__dirname, "../audios", audioFileName);
-    fs.writeFileSync(audioFilePath, audioBuffer);
-    console.log("Audio file saved at:", audioFilePath);
-
-    const command = `python "${pythonScriptPath}" "${audioFilePath}"`;
-    const { stdout, stderr } = await execAsync(command);
-
-    const srtGeneratedPath = stdout.trim();
-    const srtFileName = audioFileName.replace(".mp3", ".srt");
-    const srtFilePath = path.join(__dirname, "../subtitles", srtFileName);
-
-    if (fs.existsSync(srtGeneratedPath)) {
-      fs.renameSync(srtGeneratedPath, srtFilePath);
-      console.log("Subtitle file moved to:", srtFilePath);
-    } else {
-      console.warn("Subtitle not found at:", srtGeneratedPath);
-    }
-
-    if (videoStyle === "Reddit Story") {
-      if (file) {
-        const inputFilePath = path.join(uploadRedditDir, file.originalname);
-        await saveFile(file.buffer, inputFilePath);
-        console.log("Uploaded file saved at:", inputFilePath);
-
-        const outputFileName = `output_${Date.now()}.mp4`;
-        const outputFilePath = path.join(
-          __dirname,
-          "../videos",
-          outputFileName
-        );
-        try {
-          console.log("Generating final video with FFmpeg...");
-          await generateRedditVideo(
-            inputFilePath,
-            outputFilePath,
-            audioFilePath,
-            srtFilePath,
-            aspectRatio,
-            videoStyle
-          );
-        } catch (err) {
-          console.error("FFmpeg video generation error:", err);
-          return res
-            .status(500)
-            .json({ error: "Video generation failed", details: err.message });
-        }
-
-        const videoUrl = `/videos/${outputFileName}`;
-
-        res.json({
-          message: "Video generated successfully",
-          videoUrl,
-          audioUrl: `/audios/${audioFileName}`,
-          srtUrl: `/subtitles/${srtFileName}`,
-          videoStyle,
-        });
-
-        fs.createReadStream(outputFilePath).pipe(res);
-      } else {
-        res.json({
-          response: scriptText,
-          audioUrl: `/audios/${audioFileName}`,
-          srtUrl: `/subtitles/${srtFileName}`,
-          videoStyle,
-        });
-      }
-    } else if (videoStyle === "Slide Show") {
-      await handleSlideShow(srtFilePath);
-      const inputFilePath = path.join(uploadSlideShowDir);
-
-      const outputFileName = `output_${Date.now()}.mp4`;
-      const outputFilePath = path.join(__dirname, "../videos", outputFileName);
       try {
-        console.log("Generating final video with FFmpeg...");
-        await generateSlideShowVideo(
-          inputFilePath,
-          outputFilePath,
-          audioFilePath,
-          srtFilePath,
-          aspectRatio,
-          videoStyle
-        );
+        if (scriptType === "AI Script") {
+          console.log("Generating script via AI...");
+          scriptText = await sendMessageToAi(message);
+          console.log("AI-generated script:", scriptText);
+        } else if (scriptType === "User Script") {
+          scriptText = message;
+          console.log("Using user-provided script.");
+        } else {
+          return res.status(400).json({ error: "Invalid scriptType" });
+        }
       } catch (err) {
-        console.error("FFmpeg video generation error:", err);
+        console.error("Error generating scriptText:", err);
         return res
           .status(500)
-          .json({ error: "Video generation failed", details: err.message });
+          .json({ error: "Script generation failed", details: err.message });
       }
-      const videoUrl = `/videos/${outputFileName}`;
-      res.json({
-        message: "Video generated successfully",
-        videoUrl,
-        audioUrl: `/audios/${audioFileName}`,
-        srtUrl: `/subtitles/${srtFileName}`,
-        videoStyle,
-      });
 
-      fs.createReadStream(outputFilePath).pipe(res);
-    } else if (videoStyle === "Quiz") {
-      if (file) {
-        const inputFilePath = path.join(uploadQuizDir, file.originalname);
-        await saveFile(file.buffer, inputFilePath);
-        console.log("Uploaded file saved at:", inputFilePath);
+      let base64Audio;
+      try {
+        base64Audio = await textToSpeech(scriptText, voiceChoice);
+      } catch (err) {
+        return res.status(500).json({
+          error: "TTS generation failed",
+          details: err.message,
+        });
+      }
+
+      const audioBuffer = Buffer.from(base64Audio, "base64");
+      const audioFileName = `speech_${uuidv4()}.mp3`;
+      const audioFilePath = path.join(__dirname, "../audios", audioFileName);
+      fs.writeFileSync(audioFilePath, audioBuffer);
+      console.log("Audio file saved at:", audioFilePath);
+
+      const command = `python "${pythonScriptPath}" "${audioFilePath}"`;
+      const { stdout, stderr } = await execAsync(command);
+
+      const srtGeneratedPath = stdout.trim();
+      const srtFileName = audioFileName.replace(".mp3", ".srt");
+      const srtFilePath = path.join(__dirname, "../subtitles", srtFileName);
+
+      if (fs.existsSync(srtGeneratedPath)) {
+        fs.renameSync(srtGeneratedPath, srtFilePath);
+        console.log("Subtitle file moved to:", srtFilePath);
+      } else {
+        console.warn("Subtitle not found at:", srtGeneratedPath);
+      }
+
+      if (videoStyle === "Reddit Story") {
+        if (file) {
+          const inputFilePath = path.join(uploadRedditDir, file.originalname);
+          await saveFile(file.buffer, inputFilePath);
+          console.log("Uploaded file saved at:", inputFilePath);
+
+          const outputFileName = `output_${Date.now()}.mp4`;
+          const outputFilePath = path.join(
+            __dirname,
+            "../videos",
+            outputFileName
+          );
+          try {
+            console.log("Generating final video with FFmpeg...");
+            await generateRedditVideo(
+              inputFilePath,
+              outputFilePath,
+              audioFilePath,
+              srtFilePath,
+              aspectRatio,
+              videoStyle
+            );
+          } catch (err) {
+            console.error("FFmpeg video generation error:", err);
+            return res
+              .status(500)
+              .json({ error: "Video generation failed", details: err.message });
+          }
+
+          const videoUrl = `/videos/${outputFileName}`;
+          await Chat.create({
+            userId: req.user.id,
+            userMessage: message,
+            aspectRatio,
+            voiceChoice,
+            fileName: file?.originalname || "",
+            videoStyle,
+            scriptType,
+            completedLabel,
+            videoUrl,
+            createdAt: new Date(),
+          });
+
+          res.json({
+            message: "Video generated successfully",
+            videoUrl,
+            audioUrl: `/audios/${audioFileName}`,
+            srtUrl: `/subtitles/${srtFileName}`,
+            videoStyle,
+          });
+
+          fs.createReadStream(outputFilePath).pipe(res);
+        } else {
+          res.json({
+            response: scriptText,
+            audioUrl: `/audios/${audioFileName}`,
+            srtUrl: `/subtitles/${srtFileName}`,
+            videoStyle,
+          });
+        }
+      } else if (videoStyle === "Slide Show") {
+        await handleSlideShow(srtFilePath);
+        const inputFilePath = path.join(uploadSlideShowDir);
 
         const outputFileName = `output_${Date.now()}.mp4`;
         const outputFilePath = path.join(
@@ -277,7 +271,7 @@ router.post("/completions", upload.single("file"), async (req, res) => {
         );
         try {
           console.log("Generating final video with FFmpeg...");
-          await generateQuizVideo(
+          await generateSlideShowVideo(
             inputFilePath,
             outputFilePath,
             audioFilePath,
@@ -291,8 +285,19 @@ router.post("/completions", upload.single("file"), async (req, res) => {
             .status(500)
             .json({ error: "Video generation failed", details: err.message });
         }
-
         const videoUrl = `/videos/${outputFileName}`;
+        await Chat.create({
+          userId: req.user.id,
+          userMessage: message,
+          aspectRatio,
+          voiceChoice,
+          fileName: file?.originalname || "",
+          videoStyle,
+          scriptType,
+          completedLabel,
+          videoUrl,
+          createdAt: new Date(),
+        });
 
         res.json({
           message: "Video generated successfully",
@@ -303,6 +308,66 @@ router.post("/completions", upload.single("file"), async (req, res) => {
         });
 
         fs.createReadStream(outputFilePath).pipe(res);
+      } else if (videoStyle === "Quiz") {
+        if (file) {
+          const inputFilePath = path.join(uploadQuizDir, file.originalname);
+          await saveFile(file.buffer, inputFilePath);
+          console.log("Uploaded file saved at:", inputFilePath);
+
+          const outputFileName = `output_${Date.now()}.mp4`;
+          const outputFilePath = path.join(
+            __dirname,
+            "../videos",
+            outputFileName
+          );
+          try {
+            console.log("Generating final video with FFmpeg...");
+            await generateQuizVideo(
+              inputFilePath,
+              outputFilePath,
+              audioFilePath,
+              srtFilePath,
+              aspectRatio,
+              videoStyle
+            );
+          } catch (err) {
+            console.error("FFmpeg video generation error:", err);
+            return res
+              .status(500)
+              .json({ error: "Video generation failed", details: err.message });
+          }
+
+          const videoUrl = `/videos/${outputFileName}`;
+
+          await Chat.create({
+            userId: req.user.id,
+            userMessage: message,
+            aspectRatio,
+            voiceChoice,
+            fileName: file?.originalname || "",
+            videoStyle,
+            scriptType,
+            completedLabel,
+            videoUrl,
+          });
+
+          res.json({
+            message: "Video generated successfully",
+            videoUrl,
+            audioUrl: `/audios/${audioFileName}`,
+            srtUrl: `/subtitles/${srtFileName}`,
+            videoStyle,
+          });
+
+          fs.createReadStream(outputFilePath).pipe(res);
+        } else {
+          res.json({
+            response: scriptText,
+            audioUrl: `/audios/${audioFileName}`,
+            srtUrl: `/subtitles/${srtFileName}`,
+            videoStyle,
+          });
+        }
       } else {
         res.json({
           response: scriptText,
@@ -311,22 +376,15 @@ router.post("/completions", upload.single("file"), async (req, res) => {
           videoStyle,
         });
       }
-    } else {
-      res.json({
-        response: scriptText,
-        audioUrl: `/audios/${audioFileName}`,
-        srtUrl: `/subtitles/${srtFileName}`,
-        videoStyle,
-      });
+    } catch (error) {
+      console.error("Unexpected error in /completions:");
+      console.error("Message:", error.message);
+      console.error("Stack:", error.stack);
+      res
+        .status(500)
+        .json({ error: "Internal server error", details: error.message });
     }
-  } catch (error) {
-    console.error("Unexpected error in /completions:");
-    console.error("Message:", error.message);
-    console.error("Stack:", error.stack);
-    res
-      .status(500)
-      .json({ error: "Internal server error", details: error.message });
   }
-});
+);
 
 module.exports = router;

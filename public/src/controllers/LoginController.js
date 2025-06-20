@@ -5,6 +5,7 @@ const axios = require("axios");
 const User = require("../models/LoginModel");
 const { hashPassword, verifyPassword } = require("../utils/Auth");
 const secretKey = process.env.JWT_SECRET || "secret";
+const { authenticateToken } = require("../utils/MiddlewareAuth");
 
 /**
  * @swagger
@@ -118,19 +119,6 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
-
-  if (!token) return res.status(401).json({ message: "No token provided" });
-
-  jwt.verify(token, secretKey, (err, user) => {
-    if (err) return res.status(403).json({ message: "Invalid token" });
-    req.user = user;
-    next();
-  });
-}
 
 /**
  * @swagger
