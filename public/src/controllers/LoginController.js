@@ -224,10 +224,10 @@ router.post("/google-login", async (req, res) => {
 
     res.json({
       token,
+      userId: user._id,
       user: {
         email: user.email,
         name: user.name,
-        userId: user._id,
       },
     });
   } catch (err) {
