@@ -9,6 +9,7 @@ const open = require("open").default;
 const { swaggerUi, swaggerSpec } = require("./swagger");
 const authRouter = require("./public/src/controllers/LoginController");
 const aiRouter = require("./public/src/controllers/AiScriptController");
+const chatHistoryRouter = require("./public/src/controllers/ChatHistoryController");
 
 const app = express();
 app.use(cors());
@@ -20,6 +21,7 @@ app.use("/videos", express.static(path.join(__dirname, "public/src/videos")));
 
 app.use("/auth", authRouter);
 app.use("/chat", aiRouter);
+app.use("/api/chatHistory", chatHistoryRouter);
 
 app.get("/", (req, res) => {
   res.send("AutoVid backend is running!");
