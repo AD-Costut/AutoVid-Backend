@@ -78,7 +78,7 @@ router.post("/", async (req, res) => {
       scriptType = "defaultScript",
       fileName = "defaultFileName",
       videoUrl = "defaultUrl",
-      competedLabel = "defaultLabel",
+      completedLabel = "defaultLabel",
     } = req.body;
 
     const newVideo = new GeneratedChatHistorySchema({
@@ -89,7 +89,7 @@ router.post("/", async (req, res) => {
       scriptType,
       fileName,
       videoUrl,
-      competedLabel,
+      completedLabel,
     });
 
     await newVideo.save();
