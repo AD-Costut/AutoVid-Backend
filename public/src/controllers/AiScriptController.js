@@ -111,11 +111,18 @@ const { log } = require("console");
  */
 
 router.post("/completions", upload.single("file"), async (req, res) => {
-  const { message, aspectRatio, voiceChoice, videoStyle, scriptType } =
-    req.body;
+  const {
+    message,
+    aspectRatio,
+    voiceChoice,
+    videoStyle,
+    scriptType,
+    completedLabel,
+  } = req.body;
   const file = req.file;
   debugger;
 
+  console.log("LABEL COMPLETAT", completedLabel);
   if (!message) return res.status(400).json({ error: "Message is required" });
 
   console.log("Received Image/Video:", file);
