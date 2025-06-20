@@ -269,8 +269,8 @@ const generateQuizVideo = async (
             console.log(`✅ FFmpeg finished. Video at: ${outputVideo}`);
 
             clearDirectory(uploadQuizDir);
-            // clearDirectory(audiosDir);
-            // clearDirectory(subtitlesDir);
+            clearDirectory(audiosDir);
+            clearDirectory(subtitlesDir);
 
             resolve();
           } else {

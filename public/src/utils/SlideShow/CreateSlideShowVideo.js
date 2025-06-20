@@ -206,7 +206,7 @@ const generateSlideShowVideo = async (
         console.log(`✅ FFmpeg finished. Video at: ${outputVideo}`);
 
         clearDirectory(uploadSlideShowDir);
-        // clearDirectory(audiosDir);
+        clearDirectory(audiosDir);
         clearDirectory(subtitlesDir);
 
         resolve();

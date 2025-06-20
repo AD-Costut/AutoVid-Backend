@@ -130,7 +130,7 @@ const generateRedditVideo = async (
           console.log(`✅ FFmpeg finished. Video at: ${outputVideo}`);
 
           clearDirectory(uploadRedditDir);
-          // clearDirectory(audiosDir);
+          clearDirectory(audiosDir);
           clearDirectory(subtitlesDir);
 
           resolve();
