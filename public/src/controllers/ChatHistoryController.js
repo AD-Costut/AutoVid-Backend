@@ -179,4 +179,64 @@ router.get("/:userId", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/chatHistory/{id}:
+ *   delete:
+ *     summary: Delete a video by its ID
+ *     tags:
+ *       - Chat History
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The MongoDB ObjectId of the video to delete
+ *     responses:
+ *       200:
+ *         description: Video deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Video deleted successfully
+ *       404:
+ *         description: Video not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Video not found
+ *       500:
+ *         description: Failed to delete video due to server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Failed to delete video
+ */
+router.delete("/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const deletedVideo = await GeneratedChatHistorySchema.findByIdAndDelete(id);
+    if (!deletedVideo) {
+      return res.status(404).json({ message: "Video not found" });
+    }
+    res.status(200).json({ message: "Video deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting video:", error);
+    res.status(500).json({ error: "Failed to delete video" });
+  }
+});
+
 module.exports = router;
