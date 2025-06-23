@@ -73,8 +73,19 @@ function extractContent(data) {
     data.response ||
     "";
 
-  const match = rawContent.match(/##([\s\S]*?)##/);
-  let content = match ? match[1].trim() : rawContent.trim();
+  const match = rawContent.match(/##\s*([\s\S]*?)\s*##/);
+
+  let content;
+
+  if (match) {
+    content = match[1].trim();
+  } else {
+    if (rawContent.trim().startsWith("##")) {
+      content = rawContent.replace(/^##\s*/, "").trim();
+    } else {
+      content = rawContent.trim();
+    }
+  }
 
   if (content.length > 5000) {
     content = content.slice(0, 4999);
@@ -82,23 +93,6 @@ function extractContent(data) {
 
   return content;
 }
-
-// function extractContent(data) {
-//   const rawContent =
-//     data.choices?.[0]?.message?.content ||
-//     data.generated_text ||
-//     data.response ||
-//     "";
-
-//   const match = rawContent.match(/##([\s\S]*?)(?:##|$)/);
-//   let content = match ? match[1].trim() : rawContent.trim();
-
-//   if (content.length > 300) {
-//     content = content.slice(0, 299);
-//   }
-
-//   return content;
-// }
 
 module.exports = {
   extractContent,

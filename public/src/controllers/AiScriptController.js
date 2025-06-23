@@ -34,7 +34,7 @@ const {
   handleSlideShow,
 } = require("../utils/SlideShow/DownloadSlideShowVideoResources");
 
-// const { generatePrompt } = require("../utils/PromptProcessor");
+const { generatePrompt } = require("../utils/PromptProcessor");
 
 // const {
 //   processMessageAndDownloadMediaForSlideShow,
@@ -154,7 +154,8 @@ router.post(
       try {
         if (scriptType === "AI Script") {
           console.log("Generating script via AI...");
-          scriptText = await sendMessageToAi(message);
+          promptForAi = generatePrompt(videoStyle, message);
+          scriptText = await sendMessageToAi(promptForAi);
           console.log("AI-generated script:", scriptText);
         } else if (scriptType === "User Script") {
           scriptText = message;
