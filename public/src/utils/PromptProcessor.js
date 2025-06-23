@@ -3,33 +3,35 @@ function generatePrompt(selectedVideoType, input) {
   if (selectedVideoType === "Quiz") {
     finalPrompt = `Make 3 questions multiple choice quiz script about: "${input}".
 
-      Then write the entire quiz script inside a single pair of ## delimiters.
-      
-      The quiz script should look something like:
-      Welcome to today's quiz about the topic.
-    
-      Question 1  
-      A.   
-      B.   
-      C.   
-      Correct Answear [ .]  
-      
-      Question 2  
-      A.   
-      B.   
-      C.   
-      Correct Answear [ .] 
-      
-      ...  
-      
-      Question 3  
-      A.   
-      B.   
-      C.   
-      Correct Answear [ .] 
-      ##
-      4500 characters max
-      Do NOT include any narrator labels, parentheses, comments, or extra delimiters.`;
+        Write the entire quiz script inside a single pair of ## delimiters.
+        
+        The quiz script should start with something like:
+        Welcome to today's quiz about the topic.
+        
+        Then write exactly 3 questions and answers in this format:
+        ##
+        [1. Short Question 1 text]  
+        [A. ]  
+        [B. ]  
+        [C. ]  
+        Correct Answear [ .]  
+        
+        [2. Short Question 2 text]  
+        [A. ]  
+        [B. ]  
+        [C. ]  
+        Correct Answear [ .]  
+        
+        ...  
+        
+        [3. Short Question 3 text]  
+        [A. ]  
+        [B. ]  
+        [C. ]  
+        Correct Answear [ .]  
+        ##
+        4500 characters max
+        Do NOT include any narrator labels, parentheses, comments, or extra delimiters.`;
   } else if (selectedVideoType === "Slide Show") {
     finalPrompt = `Make a YouTube slideshow narration script about: "${input}" for a youtube video.
       

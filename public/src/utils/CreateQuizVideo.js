@@ -198,7 +198,16 @@ const generateQuizVideo = async (
           return reject(new Error("Subtitle file not found"));
         }
 
-        const vfFilter = getVideoFilter(aspectRatio, finalSubtitleFile);
+        let subtitleToUse = finalSubtitleFile;
+        const stats = fs.statSync(finalSubtitleFile);
+        if (stats.size === 0) {
+          console.warn(
+            "Formatted SRT is empty, using original subtitle file instead"
+          );
+          subtitleToUse = subtitleFile;
+        }
+
+        const vfFilter = getVideoFilter(aspectRatio, subtitleToUse);
         const ext = path.extname(inputVideo).toLowerCase();
         const isImage = [".jpg", ".jpeg", ".png", ".webp"].includes(ext);
 
