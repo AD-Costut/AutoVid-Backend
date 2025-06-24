@@ -9,10 +9,10 @@ const providersConfig = {
     url: "https://api.together.xyz/v1/chat/completions",
     apiKey: process.env.TOGETHER_API_KEY,
   },
-  huggingface: {
-    url: "https://api-inference.huggingface.co/models/Qwen/Qwen3-32B",
-    apiKey: process.env.HUGGINGFACE_API_KEY,
-  },
+  // huggingface: {
+  //   url: "https://api-inference.huggingface.co/models/Qwen/Qwen3-32B",
+  //   apiKey: process.env.HUGGINGFACE_API_KEY,
+  // },
 };
 
 async function sendMessageToAi(message) {

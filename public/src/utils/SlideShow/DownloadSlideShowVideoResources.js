@@ -82,7 +82,7 @@ async function processSrtAndSearch(captions) {
     }
 
     console.log("Keywords", keywords);
-    const searchFn = i % 2 === 0 ? searchPexels : searchGiphy;
+    const searchFn = searchPexels;
     const videoLink = await searchFn(keyword);
 
     if (videoLink) {
@@ -137,39 +137,39 @@ async function searchPexels(keyword) {
   }
 }
 
-async function searchGiphy(keyword) {
-  try {
-    const res = await axios.get("https://api.giphy.com/v1/gifs/search", {
-      params: {
-        api_key: "r5R5t7jAjCMvJvcnLaFC2m5FfhVfnEAB",
-        q: keyword,
-        limit: 1,
-      },
-    });
+// async function searchGiphy(keyword) {
+//   try {
+//     const res = await axios.get("https://api.giphy.com/v1/gifs/search", {
+//       params: {
+//         api_key: "r5R5t7jAjCMvJvcnLaFC2m5FfhVfnEAB",
+//         q: keyword,
+//         limit: 1,
+//       },
+//     });
 
-    const gif = res.data.data?.[0];
-    if (!gif || !gif.images) return null;
+//     const gif = res.data.data?.[0];
+//     if (!gif || !gif.images) return null;
 
-    let bestMp4 = null;
-    let maxResolution = 0;
+//     let bestMp4 = null;
+//     let maxResolution = 0;
 
-    for (const key in gif.images) {
-      const image = gif.images[key];
-      if (image.mp4 && image.width && image.height) {
-        const resolution = parseInt(image.width) * parseInt(image.height);
-        if (resolution > maxResolution) {
-          bestMp4 = image.mp4;
-          maxResolution = resolution;
-        }
-      }
-    }
+//     for (const key in gif.images) {
+//       const image = gif.images[key];
+//       if (image.mp4 && image.width && image.height) {
+//         const resolution = parseInt(image.width) * parseInt(image.height);
+//         if (resolution > maxResolution) {
+//           bestMp4 = image.mp4;
+//           maxResolution = resolution;
+//         }
+//       }
+//     }
 
-    return bestMp4 || null;
-  } catch (err) {
-    console.warn(`Giphy search failed for "${keyword}":`, err.message);
-    return null;
-  }
-}
+//     return bestMp4 || null;
+//   } catch (err) {
+//     console.warn(`Giphy search failed for "${keyword}":`, err.message);
+//     return null;
+//   }
+// }
 
 async function downloadAndSaveVideo(videoUrl, saveDir, fileName) {
   try {
