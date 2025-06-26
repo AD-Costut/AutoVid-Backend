@@ -230,18 +230,22 @@ router.post(
           }
 
           const videoUrl = `/videos/${outputFileName}`;
-          await Chat.create({
-            userId: req.user.id,
-            userMessage: message,
-            aspectRatio,
-            voiceChoice,
-            fileName: file?.originalname || "",
-            videoStyle,
-            scriptType,
-            completedLabel,
-            videoUrl,
-            createdAt: new Date(),
-          });
+          try {
+            await axios.post("http://localhost:5000/api/chatHistory", {
+              userId: req.user.id,
+              userMessage: message,
+              aspectRatio,
+              voiceChoice,
+              fileName: file?.originalname || "",
+              videoStyle,
+              scriptType,
+              completedLabel,
+              videoUrl,
+            });
+            console.log("Video metadata saved to DB via API");
+          } catch (err) {
+            console.error("Failed to save video metadata:", err.message);
+          }
 
           res.json({
             message: "Video generated successfully",
@@ -287,18 +291,22 @@ router.post(
             .json({ error: "Video generation failed", details: err.message });
         }
         const videoUrl = `/videos/${outputFileName}`;
-        await Chat.create({
-          userId: req.user.id,
-          userMessage: message,
-          aspectRatio,
-          voiceChoice,
-          fileName: file?.originalname || "",
-          videoStyle,
-          scriptType,
-          completedLabel,
-          videoUrl,
-          createdAt: new Date(),
-        });
+        try {
+          await axios.post("http://localhost:5000/api/chatHistory", {
+            userId: req.user.id,
+            userMessage: message,
+            aspectRatio,
+            voiceChoice,
+            fileName: file?.originalname || "",
+            videoStyle,
+            scriptType,
+            completedLabel,
+            videoUrl,
+          });
+          console.log("Video metadata saved to DB via API");
+        } catch (err) {
+          console.error("Failed to save video metadata:", err.message);
+        }
 
         res.json({
           message: "Video generated successfully",
@@ -340,17 +348,22 @@ router.post(
 
           const videoUrl = `/videos/${outputFileName}`;
 
-          await Chat.create({
-            userId: req.user.id,
-            userMessage: message,
-            aspectRatio,
-            voiceChoice,
-            fileName: file?.originalname || "",
-            videoStyle,
-            scriptType,
-            completedLabel,
-            videoUrl,
-          });
+          try {
+            await axios.post("http://localhost:5000/api/chatHistory", {
+              userId: req.user.id,
+              userMessage: message,
+              aspectRatio,
+              voiceChoice,
+              fileName: file?.originalname || "",
+              videoStyle,
+              scriptType,
+              completedLabel,
+              videoUrl,
+            });
+            console.log("Video metadata saved to DB via API");
+          } catch (err) {
+            console.error("Failed to save video metadata:", err.message);
+          }
 
           res.json({
             message: "Video generated successfully",
