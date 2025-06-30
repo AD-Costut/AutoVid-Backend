@@ -158,14 +158,15 @@ function getVideoFilter(aspectRatio, subtitlePath) {
   if (aspectRatio === "16:9") {
     scaleCropFilter =
       "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080";
+    return `${scaleCropFilter},subtitles=${safeSubtitlePath}:force_style='PrimaryColour=&H0000FFFF,Bold=1,MarginV=50,FontName=Arial,FontSize=24'`;
   } else if (aspectRatio === "9:16") {
     scaleCropFilter =
       "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920";
+    return `${scaleCropFilter},subtitles=${safeSubtitlePath}:force_style='PrimaryColour=&H0000FFFF,Bold=1,MarginV=50,FontName=Arial,FontSize=18'`;
   } else {
     scaleCropFilter = "scale=iw:ih";
+    return `${scaleCropFilter},subtitles=${safeSubtitlePath}:force_style='PrimaryColour=&H0000FFFF,Bold=1,MarginV=50,FontName=Arial,FontSize=24'`;
   }
-
-  return `${scaleCropFilter},subtitles=${safeSubtitlePath}:force_style='PrimaryColour=&H0000FFFF,Bold=1,MarginV=50,FontName=Arial,FontSize=24'`;
 }
 
 const generateQuizVideo = async (
