@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const GeneratedChatHistorySchema = require("../models/ChatModel");
+const cloudinary = require("../utils/Cloudinary");
 
 /**
  * @swagger
@@ -228,11 +229,27 @@ router.get("/:userId", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
   try {
-    const deletedVideo = await GeneratedChatHistorySchema.findByIdAndDelete(id);
-    if (!deletedVideo) {
+    const videoDoc = await GeneratedChatHistorySchema.findByIdAndDelete(id);
+    if (!videoDoc) {
       return res.status(404).json({ message: "Video not found" });
     }
-    res.status(200).json({ message: "Video deleted successfully" });
+
+    let publicId = null;
+    if (videoDoc.videoUrl) {
+      const urlParts = videoDoc.videoUrl.split("/");
+      const fileWithExt = urlParts[urlParts.length - 1];
+      const folder = urlParts[urlParts.length - 2];
+      publicId = `${folder}/${fileWithExt.split(".")[0]}`;
+    }
+
+    if (publicId) {
+      await cloudinary.uploader.destroy(publicId, { resource_type: "video" });
+    }
+    await GeneratedChatHistorySchema.findByIdAndDelete(id);
+
+    res
+      .status(200)
+      .json({ message: "Video and database record deleted successfully" });
   } catch (error) {
     console.error("Error deleting video:", error);
     res.status(500).json({ error: "Failed to delete video" });
