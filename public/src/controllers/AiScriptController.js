@@ -15,6 +15,7 @@ const axios = require("axios");
 const { textToSpeech } = require("../utils/TextToSpeech");
 
 const { sendMessageToAi } = require("../utils/ScriptEditor");
+const cloudinary = require("../utils/Cloudinary");
 
 const pythonScriptPath = path.join(__dirname, "..", "python", "Whisper.py");
 
@@ -46,6 +47,7 @@ const {
   saveFile,
 } = require("../utils/CreateRedditVideo");
 const { log } = require("console");
+const { clearDirectory } = require("../utils/ClearDirectory");
 
 /**
  * @swagger
@@ -212,6 +214,7 @@ router.post(
             "../videos",
             outputFileName
           );
+
           try {
             console.log("Generating final video with FFmpeg...");
             await generateRedditVideo(
@@ -229,7 +232,28 @@ router.post(
               .json({ error: "Video generation failed", details: err.message });
           }
 
-          const videoUrl = `/videos/${outputFileName}`;
+          let videoUrl = `/videos/${outputFileName}`;
+          let uploadSuccess = false;
+
+          try {
+            const cloudinaryResult = await cloudinary.uploader.upload(
+              outputFilePath,
+              {
+                resource_type: "video",
+                folder: "generated_videos",
+                public_id: outputFileName.split(".")[0],
+                overwrite: true,
+              }
+            );
+
+            videoUrl = cloudinaryResult.secure_url;
+            uploadSuccess = true;
+            // console.log("VIDEO URL", videoUrl);
+            // console.log("Full Cloudinary result:", cloudinaryResult);
+          } catch (uploadErr) {
+            console.error("Cloudinary upload error:", uploadErr);
+          }
+
           try {
             await axios.post("http://localhost:5000/api/chatHistory", {
               userId: req.user.id,
@@ -255,7 +279,13 @@ router.post(
             videoStyle,
           });
 
-          fs.createReadStream(outputFilePath).pipe(res);
+          if (uploadSuccess) {
+            try {
+              clearDirectory(path.dirname(outputFilePath));
+            } catch (err) {
+              console.warn("Failed to clear output directory:", err.message);
+            }
+          }
         } else {
           res.json({
             response: scriptText,
@@ -274,6 +304,7 @@ router.post(
           "../videos",
           outputFileName
         );
+
         try {
           console.log("Generating final video with FFmpeg...");
           await generateSlideShowVideo(
@@ -290,7 +321,29 @@ router.post(
             .status(500)
             .json({ error: "Video generation failed", details: err.message });
         }
-        const videoUrl = `/videos/${outputFileName}`;
+
+        let videoUrl = `/videos/${outputFileName}`;
+        let uploadSuccess = false;
+
+        try {
+          const cloudinaryResult = await cloudinary.uploader.upload(
+            outputFilePath,
+            {
+              resource_type: "video",
+              folder: "generated_videos",
+              public_id: outputFileName.split(".")[0],
+              overwrite: true,
+            }
+          );
+
+          videoUrl = cloudinaryResult.secure_url;
+          uploadSuccess = true;
+          // console.log("VIDEO URL", videoUrl);
+          // console.log("Full Cloudinary result:", cloudinaryResult);
+        } catch (uploadErr) {
+          console.error("Cloudinary upload error:", uploadErr);
+        }
+
         try {
           await axios.post("http://localhost:5000/api/chatHistory", {
             userId: req.user.id,
@@ -316,7 +369,13 @@ router.post(
           videoStyle,
         });
 
-        fs.createReadStream(outputFilePath).pipe(res);
+        if (uploadSuccess) {
+          try {
+            clearDirectory(path.dirname(outputFilePath));
+          } catch (err) {
+            console.warn("Failed to clear output directory:", err.message);
+          }
+        }
       } else if (videoStyle === "Quiz") {
         if (file) {
           const inputFilePath = path.join(uploadQuizDir, file.originalname);
@@ -329,6 +388,7 @@ router.post(
             "../videos",
             outputFileName
           );
+
           try {
             console.log("Generating final video with FFmpeg...");
             await generateQuizVideo(
@@ -346,7 +406,27 @@ router.post(
               .json({ error: "Video generation failed", details: err.message });
           }
 
-          const videoUrl = `/videos/${outputFileName}`;
+          let videoUrl = `/videos/${outputFileName}`;
+          let uploadSuccess = false;
+
+          try {
+            const cloudinaryResult = await cloudinary.uploader.upload(
+              outputFilePath,
+              {
+                resource_type: "video",
+                folder: "generated_videos",
+                public_id: outputFileName.split(".")[0],
+                overwrite: true,
+              }
+            );
+
+            videoUrl = cloudinaryResult.secure_url;
+            uploadSuccess = true;
+            // console.log("VIDEO URL", videoUrl);
+            // console.log("Full Cloudinary result:", cloudinaryResult);
+          } catch (uploadErr) {
+            console.error("Cloudinary upload error:", uploadErr);
+          }
 
           try {
             await axios.post("http://localhost:5000/api/chatHistory", {
@@ -373,7 +453,13 @@ router.post(
             videoStyle,
           });
 
-          fs.createReadStream(outputFilePath).pipe(res);
+          if (uploadSuccess) {
+            try {
+              clearDirectory(path.dirname(outputFilePath));
+            } catch (err) {
+              console.warn("Failed to clear output directory:", err.message);
+            }
+          }
         } else {
           res.json({
             response: scriptText,
